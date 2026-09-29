@@ -4,6 +4,7 @@
   import { line, curveLinearClosed } from 'd3-shape';
   import { zoom, zoomIdentity } from 'd3-zoom';
   import { select } from 'd3-selection';
+  import { Delaunay } from 'd3-delaunay';
   import { load, CLUSTER_HEX } from '../lib/data.js';
 
   let data = $state(null);
@@ -80,12 +81,16 @@
       const t = (now - t0) / 1000;
       const w = (2 * Math.PI) / 6;
       const next = disp.map((d, i) => {
-        let tx = 1.5 * Math.sin(w * t + phase[i][0]), ty = 1.5 * Math.cos(w * t * 0.9 + phase[i][1]);
-        if (pointer) {
+        // gentle idle drift; everything settles while a point is hovered so it is easy to click
+        const still = hoverI != null;
+        let tx = still ? 0 : 0.5 * Math.sin(w * t + phase[i][0]);
+        let ty = still ? 0 : 0.5 * Math.cos(w * t * 0.9 + phase[i][1]);
+        if (pointer && !still) {
+          // points in a ring around the cursor lean away; the ones right under it stay put
           const dx = base[i].x - pointer.x, dy = base[i].y - pointer.y, r = Math.hypot(dx, dy);
-          const R = 70 / transform.k;
-          if (r < R && r > 0.01) {
-            const f = ((1 - r / R) ** 2 * 9) / transform.k;
+          const R0 = 18 / transform.k, R = 60 / transform.k;
+          if (r > R0 && r < R) {
+            const f = (Math.sin(((r - R0) / (R - R0)) * Math.PI) * 3) / transform.k;
             tx += (dx / r) * f; ty += (dy / r) * f;
           }
         }
@@ -98,10 +103,22 @@
   });
   let resetZoom = () => {};
 
+  // hover/click snap to the nearest visible point (Voronoi lookup), so dense areas stay clickable
+  let delaunay = $derived(base.length ? Delaunay.from(base, (d) => d.x, (d) => d.y) : null);
   function onmove(ev) {
     const r = svg.getBoundingClientRect();
     const [x, y] = transform.invert([ev.clientX - r.left, ev.clientY - r.top]);
     pointer = { x, y };
+    let near = null;
+    if (delaunay) {
+      const i = delaunay.find(x, y);
+      if (i >= 0 && !hidden[data.points[i].c] && Math.hypot(base[i].x - x, base[i].y - y) < 12 / transform.k) near = i;
+    }
+    hoverI = near;
+    tip = near == null ? null : { x: ev.clientX, y: ev.clientY, i: near };
+  }
+  function onclickMap() {
+    if (hoverI != null) selected = selected === hoverI ? null : hoverI;
   }
   function onleave() { pointer = null; hoverI = null; tip = null; }
 
@@ -120,13 +137,12 @@
 
 <section class="chapter" id="taxonomy">
   <div class="prose">
-    <div class="eyebrow">Part 3</div>
     <h2>ValueMap: a taxonomy of LLM values</h2>
     <p>
       Representations that predict alignment generalization can also organize values. Where past taxonomies
       clustered value <em>descriptions</em>, we cluster representations that better predict how values interact
       during training. We introduce <strong>ValueMap</strong> and instantiate it on Olmo-3.1-32B-SFT and the 266
-      values from <em>Values in the Wild</em>, using k-medoids with k = 4 on persona-vector representations.
+      values from <a href="https://arxiv.org/abs/2504.15236"><em>Values in the Wild</em></a>, using k-medoids with k = 4 on persona-vector representations.
     </p>
     <p>
       We identify four clusters: <strong>attunement</strong> values, which relate to supporting healthy
@@ -134,7 +150,7 @@
       rigorous reasoning, objectivity, and excellence in task execution; <strong>stewardship</strong> values,
       supporting the long-term welfare of society and the full consideration of third parties; and
       <strong>integrity</strong> values, supporting professional norms and codes of conduct as well as intellectual
-      honesty. ValueMap recovers the generalization structure of Part 1 better than existing taxonomies
+      honesty. ValueMap recovers the generalization structure of the matrices above better than existing taxonomies
       (z = 2.75, vs. 1.55 for LitmusValues and 1.03 for Values in the Wild).
     </p>
   </div>
@@ -164,8 +180,11 @@
     </div>
 
     <div class="mapwrap card" bind:clientWidth={width}>
+      <!-- keyboard access to points is via the search box and neighbor list -->
+      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
       <svg bind:this={svg} {width} {height} role="img" aria-label="MDS map of 266 values in four clusters"
-        onmousemove={onmove} onmouseleave={onleave}>
+        onmousemove={onmove} onmouseleave={onleave} onclick={onclickMap}
+        style:cursor={hoverI != null ? 'pointer' : 'grab'}>
         {#if data && base.length}
           <g transform={transform.toString()}>
             {#each hulls as h, k}
@@ -184,12 +203,7 @@
                 r={(i === selected ? 8 : i === hoverI ? 7 : p.medoid ? 6 : 4.5) / Math.sqrt(transform.k)}
                 fill={CLUSTER_HEX[p.c]} fill-opacity={opacity(i)}
                 stroke={i === selected ? '#0b0b0b' : '#fcfcfb'} stroke-width={(i === selected ? 2 : 1) / transform.k}
-                role="button" tabindex="-1" aria-label={p.name}
-                onmouseenter={(e) => { hoverI = i; tip = { x: e.clientX, y: e.clientY, i }; }}
-                onmouseleave={() => { hoverI = null; tip = null; }}
-                onclick={() => (selected = selected === i ? null : i)}
-                onkeydown={(e) => e.key === 'Enter' && (selected = i)}
-                style="cursor:pointer"
+                pointer-events="none" data-name={p.name}
               />
             {/each}
             {#each data.points as p, i}
@@ -223,11 +237,7 @@
         </div>
       {/if}
     </div>
-    <p class="caption ui muted">
-      Each point is a value's persona vector in Olmo-3.1-32B-SFT, projected to 2D with non-metric MDS. Shaded regions are the
-      hull of the 90% of each cluster's points closest to its centroid. Because 2D projection distorts distance,
-      nearest neighbors are computed in the full representation space. Scroll to zoom, drag to pan.
-    </p>
+    <p class="caption ui ink2">2D non-metric MDS of Olmo-3.1-32B-SFT persona vectors; nearest neighbors use the full-dimensional vectors.</p>
   </div>
 
   {#if tip && data}

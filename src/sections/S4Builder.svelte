@@ -99,10 +99,9 @@
 
 <section class="chapter" id="multivalue">
   <div class="prose">
-    <div class="eyebrow">Part 4</div>
     <h2>Build your own alignment target</h2>
     <p>
-      Real alignment targets list many values at once. We hypothesize that models trained on more coherent sets of
+      Real <a href="https://arxiv.org/abs/2404.10636">alignment targets</a> list many values at once. We hypothesize that models trained on more coherent sets of
       traits adhere to their alignment target more robustly. For a multi-value alignment target T = {'{'}v₁, …, vₙ{'}'}
       and a value embedding E, we define the <em>coherence</em> of T as the average pairwise cosine similarity of the
       embeddings of its values.
@@ -176,9 +175,6 @@
               </div>
             {/each}
           </div>
-          {#if target.length >= 3}
-            <p class="hint muted">Numbers show how coherence would change if that value were removed; <span class="oddtag">odd one out</span> marks the value whose removal helps most.</p>
-          {/if}
         </div>
 
         {#if pairs.length}
@@ -232,7 +228,6 @@
               <line x1={strip.X(coh)} x2={strip.X(coh)} y1="4" y2={SH - 18} stroke="#0b0b0b" stroke-width="2" />
               <circle cx={strip.X(coh)} cy="6" r="4" fill="#0b0b0b" />
             </svg>
-            <p class="small muted">Distribution of coherence over {mv.n_samples.toLocaleString()} random {target.length}-value targets drawn from all 66 values ({emb === 'persona' ? 'Qwen-3-8B persona vectors' : 'all-mpnet description embeddings'}).</p>
           {/if}
           {#if target.length >= 2}
             <div class="eyebrow" style="margin-top:14px">All pairs</div>
@@ -248,9 +243,7 @@
                 {/each}
               {/each}
             </svg>
-            <p class="small muted">
-              {#if hoverPair}{values[hoverPair.a].name} &amp; {values[hoverPair.b].name}: cos {hoverPair.cos.toFixed(2)}{:else}Hover a square to see the pair. Darker = more similar.{/if}
-            </p>
+            {#if hoverPair}<p class="small ink2">{values[hoverPair.a].name} &amp; {values[hoverPair.b].name}: cos {hoverPair.cos.toFixed(2)}</p>{/if}
           {/if}
         {/if}
       </aside>
@@ -284,8 +277,6 @@
   .loo { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-2); }
   .loobar { display: inline-block; height: 6px; border-radius: 2px; }
   .x { border: 0; background: none; font-size: 16px; color: var(--muted); cursor: pointer; padding: 0 4px; }
-  .hint { font-size: 12px; margin: 10px 0 0; }
-  .oddtag { font-size: 10px; font-weight: 700; color: #b8312f; text-transform: uppercase; }
   .pairs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px; }
   .prow { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid var(--grid); }
   .sw { width: 12px; height: 12px; border-radius: 3px; }

@@ -16,15 +16,15 @@
   } = $props();
 
   const LABEL_FONT = '10px Inter, system-ui, sans-serif';
-  const MAXCH = 36;
+  const MAXCH = 32;
   let wrap = $state();
   let canvas = $state();
   let width = $state(900);
   let hover = $state(null);
 
   const clipLabel = (s) => (s.length > MAXCH ? s.slice(0, MAXCH - 1) + '…' : s);
-  const gutterL = 196;
-  const gutterT = 196;
+  const gutterL = 176;
+  const gutterT = 176;
   let cell = $derived(Math.max(6, Math.min(15, Math.floor((width - gutterL - 8) / Math.max(1, cols.length)))));
   let W = $derived(gutterL + cell * cols.length + 8);
   let H = $derived(gutterT + cell * rows.length + 8);
@@ -147,7 +147,6 @@
   <canvas
     bind:this={canvas}
     tabindex="0"
-    role="application"
     aria-label={ariaLabel + '. Use arrow keys to move between cells.'}
     onmousemove={onmove}
     onmouseleave={onleave}

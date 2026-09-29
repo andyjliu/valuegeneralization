@@ -42,3 +42,12 @@ export function divColor(g) {
   return g >= 0 ? iPos(t) : iNeg(t);
 }
 export const DIV_STOPS = { NEG, MID, POS };
+
+// predictor identity colours (validated all-pairs on the light surface)
+export const PRED_HEX = {
+  persona: '#2a78d6',
+  grad_proj: '#e34948',
+  sentemb_behavior: '#1baf7a',
+  weight_steer: '#eda100',
+  sentence_emb: '#4a3aa7',
+};

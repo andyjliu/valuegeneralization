@@ -95,19 +95,18 @@
 
 <section class="chapter" id="generalization">
   <div class="prose">
-    <div class="eyebrow">Part 1</div>
     <h2>Introducing value alignment generalization</h2>
     <p>
       LLM developers post-train their models to exhibit prosocial values, but training on narrow behaviors can
       influence model behavior in unexpected ways. We aim to empirically predict <em>alignment generalization</em>:
       how training a model to follow one value influences its propensity to follow values that it was not trained
-      on. We train models to follow individual values from a set of 66 values drawn from Anthropic's constitution,
+      on. We train models to follow individual values from a set of 66 values drawn from <a href="https://www.anthropic.com/constitution">Anthropic's constitution</a>,
       then evaluate how this shifts their adherence to all the others. We do this with two training methods,
       single-value DPO and single-value SFT, on two base models (Olmo-3-7B and Qwen-3-8B-Base), giving a
       <em>generalization matrix</em> G where G(v₁, v₂) denotes how well training on value v₁ transfers to value v₂.
     </p>
     <p>
-      We measure adherence with ConflictScope: 11,731 scenarios in which two values recommend different actions,
+      We measure adherence with <a href="https://arxiv.org/abs/2509.25369">ConflictScope</a>: 11,731 scenarios in which two values recommend different actions,
       with an LLM judge scoring how v₂-aligned the model's action was. G(v₁, v₂) is the proportion of the
       remaining alignment gap toward v₂ that is closed by fine-tuning on v₁. A score of −1 means the fine-tuned
       model never aligns with v₂, while 0.5 is equivalent to flipping the model toward v₂ in half of the cases
@@ -129,10 +128,9 @@
           </div>
         </Controls>
         <DivLegend />
-        <p class="note muted">
-          Outlined cells: training and evaluating on the same value.
-          {#if method === 'sft'}Rows below the dashed line are the 17 values we could only train with SFT.{/if}
-        </p>
+        {#if method === 'sft'}
+          <p class="note ink2">Rows below the dashed line are the 17 values we could only train with SFT.</p>
+        {/if}
       </div>
 
       <div class="main">
@@ -202,7 +200,7 @@
 </section>
 
 <style>
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; align-items: start; }
   .rail { grid-column: 1 / -1; }
     .note { font-size: 12px; margin: 0; max-width: 260px; }
   .detail { position: sticky; top: calc(var(--header-h) + 20px); padding: 18px; max-height: calc(100vh - var(--header-h) - 40px); overflow-y: auto; }

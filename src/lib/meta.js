@@ -1,7 +1,7 @@
 // Site-level metadata. Fill in the arXiv / code URLs once public.
 export const META = {
   title: 'Predicting Alignment Generalization with Value Representations',
-  short: 'ValueMap',
+  short: 'Value Generalization',
   paperUrl: null,                 // TODO: arXiv abs URL (paper links hidden until set)
   codeUrl: null,                  // TODO: e.g. https://github.com/andyjliu/value-generalization
   authors: [

@@ -6,17 +6,12 @@
   import S4 from './sections/S4Builder.svelte';
   import { META } from './lib/meta.js';
 
-  let copied = $state(false);
-  function copyBib() {
-    navigator.clipboard?.writeText(META.bibtex).then(() => { copied = true; setTimeout(() => (copied = false), 1500); });
-  }
 </script>
 
 <Header />
 
 <main id="top">
   <div class="hero prose">
-    <div class="eyebrow">Interactive paper companion</div>
     <h1>{META.title}</h1>
     <p class="authors ui">
       {#each META.authors as a, n}
@@ -27,16 +22,24 @@
       {#each META.affiliations as aff, n}<span><sup>{n + 1}</sup>{aff}</span>{/each}
     </p>
     <p class="lede">
-      Training a model to follow one value changes how it behaves on values it was never trained on. We measure
-      this <em>alignment generalization</em> across 66 values, show that representations built from model
-      activations can predict it before any training happens, and use those representations to judge how coherent
-      an alignment target is and to map the space of LLM values.
+      LLM developers post-train their models to exhibit prosocial values and behavioral traits, which are enumerated
+      in an <a href="https://arxiv.org/abs/2404.10636">alignment target</a>. However, while recent post-training developments have yielded models that score highly on
+      alignment evaluations, training models on sets of narrow behaviors still influences their behavior across
+      unseen contexts and environments in unexpected ways. In this paper, we establish the task of <em>alignment
+      generalization prediction</em>, i.e., predicting how fine-tuning a model to follow a given value changes its
+      behavior across a wide range of heldout values. We conduct a large-scale analysis of alignment generalization
+      effects across 66 values found in modern alignment targets, and benchmark representational techniques on the
+      alignment generalization prediction task. We find that representations based on model activations when
+      applying values in context significantly outperform methods based on textual descriptions of the values.
+      Specifically, the best activations-based methods achieve correlations of ρ = 0.46 with our generalization
+      matrix, compared with ρ = 0.06 from description-based baselines. We then show the applicability of
+      representations that predict alignment generalization toward downstream tasks by using them to measure how
+      similar the values in a multi-value alignment target are, which we find is significantly correlated with
+      model robustness. Finally, we show initial evidence towards a shared, model-independent value space, which we
+      use to develop the first taxonomy of LLM values grounded in empirical generalization dynamics. Our work
+      demonstrates the importance of studying value generalization in LLMs and its application toward the more
+      empirical design and training of model behavior.
     </p>
-    <div class="stats ui">
-      <div><span class="num big">0.46</span><span>Spearman ρ with generalization for activation-based representations, vs. 0.06 for description embeddings</span></div>
-      <div><span class="num big">0.43</span><span>correlation between a target's persona-vector coherence and a trained model's prefill robustness</span></div>
-      <div><span class="num big">266</span><span>values from real-world interactions mapped into four clusters by ValueMap</span></div>
-    </div>
     <div class="cta ui">
       {#if META.paperUrl}<a class="btn primary" href={META.paperUrl}>Read the paper</a>{/if}
       {#if META.codeUrl}<a class="btn" href={META.codeUrl}>Code</a>{/if}
@@ -49,39 +52,20 @@
   <S3 />
   <S4 />
 
-  <footer class="prose ui">
-    <h3>Citation</h3>
-    <div class="bib card">
-      <button class="btn copy" onclick={copyBib}>{copied ? 'Copied' : 'Copy'}</button>
-      <pre>{META.bibtex}</pre>
-    </div>
-    <p class="muted small">
-      Generalization matrices, predictor similarities, taxonomy and coherence values are exported directly from the
-      paper's experiments. Scenario examples come from ConflictScope evaluations of each fine-tuned checkpoint.
-    </p>
-  </footer>
 </main>
 
 <style>
   .hero { padding-top: 72px; padding-bottom: 40px; }
-  h1 { font-size: 44px; line-height: 1.1; margin: 10px 0 18px; letter-spacing: -0.02em; }
+  h1 { max-width: 900px; font-size: 44px; line-height: 1.1; margin: 10px 0 18px; letter-spacing: -0.02em; }
   .authors { font-size: 16px; margin: 0 0 4px; }
   .author { white-space: nowrap; }
   sup { font-size: 10px; margin-left: 1px; }
   .affs { font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 28px; }
-  .lede { font-size: 20px; line-height: 1.55; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 28px 0; }
-  .stats div { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); border-top: 2px solid var(--ink); padding-top: 10px; }
-  .big { font-size: 34px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
+  .lede { font-size: 18px; line-height: 1.6; margin-bottom: 28px; }
+  main { padding-bottom: 96px; }
   .cta { display: flex; gap: 10px; flex-wrap: wrap; }
   .cta .btn { text-decoration: none; padding: 9px 16px; font-size: 14px; }
   .cta .primary { background: var(--ink); color: #fff; border-color: var(--ink); }
   .cta .primary:hover { background: #333; }
-  footer { padding: 80px 16px 80px; border-top: 1px solid var(--grid); margin-top: 60px; }
-  footer h3 { font-size: 18px; }
-  .bib { position: relative; padding: 14px 16px; }
-  .bib pre { margin: 0; font-size: 12px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .copy { position: absolute; top: 10px; right: 10px; }
-  .small { font-size: 12.5px; margin-top: 16px; }
-  @media (max-width: 720px) { h1 { font-size: 32px; } .stats { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { h1 { font-size: 32px; } }
 </style>

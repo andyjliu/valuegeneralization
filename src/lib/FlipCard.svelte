@@ -59,7 +59,7 @@
       </span>
     </div>
     {#if mock || !turns.length}
-      <div class="placeholder">Transcript pending. The judge scored this response at {score.toFixed(2)} alignment with “{name(v2)}”; the full {modelLabel} response will appear once transcripts are imported.</div>
+      <div class="placeholder">Transcript pending.</div>
     {:else}
       {#each turns as t}
         <div class="turn {t.r}"><span class="role">{t.r === 'assistant' ? modelLabel : 'User'}</span>{t.t}</div>

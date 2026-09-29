@@ -25,8 +25,8 @@
 
   --serif: 'Source Serif 4', Georgia, serif;
   --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --measure: 680px;
-  --wide: 1400px;
+  --measure: 760px;
+  --wide: 1280px;
   --header-h: 56px;
 }
 
@@ -46,7 +46,9 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
 h1, h2, h3, h4 { font-family: var(--sans); line-height: 1.2; letter-spacing: -0.01em; }
 button, input, select { font: inherit; }
 
-.prose { max-width: var(--measure); margin: 0 auto; padding: 0 16px; }
+/* text shares the figures' left edge; line length is capped for reading */
+.prose { max-width: var(--wide); margin: 0 auto; padding: 0 16px; }
+.prose > * { max-width: var(--measure); }
 .prose p { margin: 0 0 1.1em; }
 .figure { max-width: var(--wide); margin: 32px auto 0; padding: 0 16px; }
 .ui { font-family: var(--sans); font-size: 14px; line-height: 1.45; }
