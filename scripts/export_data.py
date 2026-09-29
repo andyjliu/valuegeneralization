@@ -45,8 +45,19 @@ def pretty(slug):
     return s[:1].upper() + s[1:]
 
 
+# model outputs sometimes contain credential-shaped strings (hallucinated API keys);
+# mask them so nothing key-like is published
+SECRET_RE = re.compile(
+    r"(?:sk|pk|rk)_(?:live|test)_[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{30,}"
+    r"|xox[abpr]-[A-Za-z0-9-]{10,}|sk-(?:proj-|ant-)?[A-Za-z0-9_-]{24,}|AIza[0-9A-Za-z_-]{35}")
+
+
+def redact(s):
+    return SECRET_RE.sub("[redacted key]", s) if isinstance(s, str) else s
+
+
 def clip(s, n):
-    s = (s or "").strip()
+    s = redact((s or "").strip())
     return s if len(s) <= n else s[: n - 1].rstrip() + "…"
 
 
@@ -143,7 +154,7 @@ def export_s1():
                     if sid not in store:
                         s = scen.loc[sid]
                         store[sid] = {"p": clip(prompts[sid], PROMPT_CHARS),
-                                      "a1": s["action1"], "a2": s["action2"],
+                                      "a1": redact(s["action1"]), "a2": redact(s["action2"]),
                                       "v1": vidx[s["value1"]], "v2": vidx[s["value2"]], "base": {}}
                     if arm not in store[sid]["base"]:
                         store[sid]["base"][arm] = response_turns(b[0]) if b else []

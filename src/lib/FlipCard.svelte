@@ -23,8 +23,8 @@
   <div class="flip ui">
     <div class="block">
       <div class="eyebrow">ConflictScope scenario</div>
-      <div class="prompt" class:clamped={!openPrompt}>
-        <span class="role">User</span>{scen.p.trim()}
+      <div class="prompt">
+        <span class="role">User</span><div class="ptext" class:clamped={!openPrompt}>{scen.p.trim()}</div>
       </div>
       <button class="link" onclick={() => (openPrompt = !openPrompt)}>{openPrompt ? 'Show less' : 'Show full prompt'}</button>
       <div class="actions">
@@ -71,7 +71,7 @@
 <style>
   .flip { display: flex; flex-direction: column; gap: 14px; }
   .prompt { white-space: pre-wrap; font-size: 13px; color: var(--ink); background: var(--surface-2); border-radius: 8px; padding: 10px 12px; margin-top: 6px; }
-  .prompt.clamped { display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .ptext.clamped { display: -webkit-box; -webkit-line-clamp: 5; line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
   .role { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
   .link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 4px 0; font-size: 12px; }
   .actions { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 6px; }
