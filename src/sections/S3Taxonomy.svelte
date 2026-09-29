@@ -66,6 +66,37 @@
     return { d: hullLine(padded), c };
   }));
 
+  // greedy label placement for the highlighted examples (in unzoomed pixels): try right, left,
+  // above, below each point; keep the first spot that overlaps no earlier label or cluster name
+  let labelPos = $derived.by(() => {
+    if (!data || !base.length) return {};
+    const out = {}, boxes = [];
+    const CH = 6.4, H = 13;
+    // cluster names occupy their centroids
+    // (computed from the resting layout so placement doesn't flicker while points drift)
+    for (const core of cores) {
+      const h = polygonHull(core.map((i) => [base[i].x, base[i].y]));
+      if (!h) continue;
+      const c = polygonCentroid(h);
+      boxes.push({ x0: c[0] - 60, x1: c[0] + 60, y0: c[1] - 20, y1: c[1] + 6 });
+    }
+    const hit = (b) => boxes.some((q) => b.x0 < q.x1 && b.x1 > q.x0 && b.y0 < q.y1 && b.y1 > q.y0);
+    const idx = data.points.map((p, i) => (p.label ? i : -1)).filter((i) => i >= 0);
+    for (const i of idx) {
+      const { x, y } = base[i], w = data.points[i].name.length * CH;
+      const opts = [
+        { dx: 8, dy: 3.5, anchor: 'start', b: { x0: x + 6, x1: x + 8 + w, y0: y - 9, y1: y + 4 } },
+        { dx: -8, dy: 3.5, anchor: 'end', b: { x0: x - 8 - w, x1: x - 6, y0: y - 9, y1: y + 4 } },
+        { dx: 0, dy: -9, anchor: 'middle', b: { x0: x - w / 2, x1: x + w / 2, y0: y - 9 - H, y1: y - 7 } },
+        { dx: 0, dy: 17, anchor: 'middle', b: { x0: x - w / 2, x1: x + w / 2, y0: y + 6, y1: y + 6 + H } },
+      ];
+      const pick = opts.find((o) => o.b.x0 > 4 && o.b.x1 < width - 4 && !hit(o.b)) ?? opts[0];
+      boxes.push(pick.b);
+      out[i] = { dx: pick.dx, dy: pick.dy, anchor: pick.anchor };
+    }
+    return out;
+  });
+
   // jiggle loop
   onMount(() => {
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0.05 });
@@ -208,7 +239,8 @@
             {/each}
             {#each data.points as p, i}
               {#if (p.label || (transform.k > 2.2 && !hidden[p.c])) && !hidden[p.c]}
-                <text x={pos[i].x + 8 / transform.k} y={pos[i].y + 3.5 / transform.k} class="plabel" font-size={(p.label ? 11.5 : 10) / transform.k}
+                {@const o = p.label ? labelPos[i] ?? { dx: 8, dy: 3.5, anchor: 'start' } : { dx: 8, dy: 3.5, anchor: 'start' }}
+                <text x={pos[i].x + o.dx / transform.k} y={pos[i].y + o.dy / transform.k} text-anchor={o.anchor} class="plabel" font-size={(p.label ? 11.5 : 10) / transform.k}
                   stroke-width={3 / transform.k} opacity={selected == null || i === selected || nnSet.has(i) ? 1 : 0.45}>{p.name}</text>
               {/if}
             {/each}

@@ -227,6 +227,34 @@ FIG4_LABELS = ["diplomatic_communication", "compassionate_care_and_support",
                "preventative_wellness_approaches", "strategic_foresight"]
 
 
+N_EXTRA_LABELS = 3      # labels per cluster on top of the paper's two
+
+
+def pick_extra_labels(values, sim, coords, cl, fixed, n=N_EXTRA_LABELS, central_frac=0.5, min_sep=0.12):
+    """Like the paper's central_examples(): values close to their cluster medoid in
+    representation space, kept >= min_sep (fraction of map span) apart on the map from
+    every label already placed."""
+    idx = {v: i for i, v in enumerate(values)}
+    span = np.ptp(coords, axis=0).max()
+    placed = [idx[v] for v in fixed]
+    extra = []
+    for c in sorted(cl.cluster.unique()):
+        members = [idx[v] for v in cl.index[cl.cluster == c]]
+        med = idx[cl.index[(cl.cluster == c) & cl.is_medoid.astype(bool)][0]]
+        cand = sorted((m for m in members if m != med), key=lambda j: -sim[med, j])
+        cand = cand[: max(n * 3, int(len(cand) * central_frac))]
+        got = 0
+        for sep in (min_sep, min_sep * 0.75, min_sep * 0.5):
+            for j in cand:
+                if got == n:
+                    break
+                if j in placed:
+                    continue
+                if all(np.hypot(*(coords[j] - coords[q])) >= sep * span for q in placed):
+                    placed.append(j); extra.append(values[j]); got += 1
+    return extra
+
+
 def export_s3():
     base = FIGS / "rq3_functional_taxonomy/inputs"
     sim = np.load(base / "persona_L32_olmo3_32b.npy")
@@ -239,6 +267,8 @@ def export_s3():
     desc = json.load(open(VG / "value_sets/vitw_l1_266.json"))
     missing = [v for v in FIG4_LABELS if v not in values]
     assert not missing, missing
+    labels = set(FIG4_LABELS) | set(pick_extra_labels(values, sim, coords, cl, FIG4_LABELS))
+    print("taxonomy labels:", len(labels))
     pts = []
     for i, v in enumerate(values):
         s = sim[i].copy()
@@ -248,7 +278,7 @@ def export_s3():
                     "c": CLUSTER_ORDER.index(cid_name[int(cl.loc[v, "cluster"])]),
                     "x": round(float(coords[i, 0]), 4), "y": round(float(coords[i, 1]), 4),
                     "nn": [[int(j), round(float(sim[i, j]), 3)] for j in nn],
-                    "medoid": bool(cl.loc[v, "is_medoid"]), "label": v in FIG4_LABELS})
+                    "medoid": bool(cl.loc[v, "is_medoid"]), "label": v in labels})
     sizes = [sum(p["c"] == k for p in pts) for k in range(4)]
     assert sizes == [70, 55, 52, 89], sizes
     out = {"clusters": [{"name": n, "desc": CLUSTER_DESC[n], "n": sizes[k]}
