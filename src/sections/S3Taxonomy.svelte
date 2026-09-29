@@ -1,0 +1,263 @@
+<script>
+  import { onMount } from 'svelte';
+  import { polygonHull, polygonCentroid } from 'd3-polygon';
+  import { line, curveLinearClosed } from 'd3-shape';
+  import { zoom, zoomIdentity } from 'd3-zoom';
+  import { select } from 'd3-selection';
+  import { load, CLUSTER_HEX } from '../lib/data.js';
+
+  let data = $state(null);
+  let width = $state(1000);
+  let height = $derived(Math.round(Math.max(440, Math.min(760, width * 0.62))));
+  const PAD = 48;
+  let svg = $state();
+  let figEl = $state();
+  let transform = $state(zoomIdentity);
+  let selected = $state(null);
+  let hoverI = $state(null);
+  let hidden = $state([false, false, false, false]);
+  let query = $state('');
+  let tip = $state(null);
+
+  // animated displacement per point
+  let disp = $state([]);
+  let pointer = null;           // in data-layer (pre-zoom) pixel coords
+  let visible = false;
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  load('taxonomy.json').then((d) => {
+    data = d;
+    disp = d.points.map(() => ({ x: 0, y: 0 }));
+    selected = d.points.findIndex((p) => p.id === 'diplomatic_communication');
+  });
+
+  let ext = $derived.by(() => {
+    if (!data) return null;
+    const xs = data.points.map((p) => p.x), ys = data.points.map((p) => p.y);
+    return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  });
+  // MDS axes carry no units; dimension 1 is stretched to the width (as in the paper figure)
+  const sx = (x) => PAD + ((x - ext.x0) / (ext.x1 - ext.x0)) * (width - 2 * PAD);
+  const sy = (y) => PAD + ((ext.y1 - y) / (ext.y1 - ext.y0)) * (height - 2 * PAD);   // y up, as in matplotlib
+
+  let base = $derived(data && ext ? data.points.map((p) => ({ x: sx(p.x), y: sy(p.y) })) : []);
+  let pos = $derived(base.map((b, i) => ({ x: b.x + (disp[i]?.x ?? 0), y: b.y + (disp[i]?.y ?? 0) })));
+
+  // central 90% of each cluster (by distance to its centroid in the base layout)
+  let cores = $derived.by(() => {
+    if (!data || !base.length) return [];
+    return [0, 1, 2, 3].map((c) => {
+      const idx = data.points.map((p, i) => (p.c === c ? i : -1)).filter((i) => i >= 0);
+      const cx = idx.reduce((s, i) => s + base[i].x, 0) / idx.length;
+      const cy = idx.reduce((s, i) => s + base[i].y, 0) / idx.length;
+      const d = idx.map((i) => Math.hypot(base[i].x - cx, base[i].y - cy));
+      const cut = [...d].sort((a, b) => a - b)[Math.floor(0.9 * (d.length - 1))];
+      return idx.filter((_, k) => d[k] <= cut);
+    });
+  });
+  const hullLine = line().curve(curveLinearClosed);
+  let hulls = $derived(cores.map((core) => {
+    const pts = core.map((i) => [pos[i].x, pos[i].y]);
+    const h = polygonHull(pts);
+    if (!h) return { d: '', c: [0, 0] };
+    const c = polygonCentroid(h);
+    const padded = h.map(([x, y]) => [c[0] + (x - c[0]) * 1.05, c[1] + (y - c[1]) * 1.05]);
+    return { d: hullLine(padded), c };
+  }));
+
+  // jiggle loop
+  onMount(() => {
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting), { threshold: 0.05 });
+    io.observe(figEl);
+    const zb = zoom().scaleExtent([1, 8]).on('zoom', (e) => (transform = e.transform));
+    select(svg).call(zb).on('dblclick.zoom', null);
+    resetZoom = () => select(svg).transition().duration(400).call(zb.transform, zoomIdentity);
+    let raf, t0 = performance.now();
+    const phase = Array.from({ length: 300 }, (_, i) => [Math.sin(i * 12.9898) * 43758.5453 % 6.283, Math.cos(i * 78.233) * 12345.678 % 6.283]);
+    function tick(now) {
+      raf = requestAnimationFrame(tick);
+      if (!visible || !data || reduced || !base.length) return;
+      const t = (now - t0) / 1000;
+      const w = (2 * Math.PI) / 6;
+      const next = disp.map((d, i) => {
+        let tx = 1.5 * Math.sin(w * t + phase[i][0]), ty = 1.5 * Math.cos(w * t * 0.9 + phase[i][1]);
+        if (pointer) {
+          const dx = base[i].x - pointer.x, dy = base[i].y - pointer.y, r = Math.hypot(dx, dy);
+          const R = 70 / transform.k;
+          if (r < R && r > 0.01) {
+            const f = ((1 - r / R) ** 2 * 9) / transform.k;
+            tx += (dx / r) * f; ty += (dy / r) * f;
+          }
+        }
+        return { x: d.x + (tx - d.x) * 0.15, y: d.y + (ty - d.y) * 0.15 };
+      });
+      disp = next;
+    }
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); io.disconnect(); };
+  });
+  let resetZoom = () => {};
+
+  function onmove(ev) {
+    const r = svg.getBoundingClientRect();
+    const [x, y] = transform.invert([ev.clientX - r.left, ev.clientY - r.top]);
+    pointer = { x, y };
+  }
+  function onleave() { pointer = null; hoverI = null; tip = null; }
+
+  let nnSet = $derived(selected != null && data ? new Set(data.points[selected].nn.map((n) => n[0])) : new Set());
+  let matches = $derived(data && query.trim().length > 1
+    ? data.points.map((p, i) => ({ p, i })).filter(({ p }) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+    : []);
+  function pick(i) { selected = i; query = ''; }
+  const opacity = (i) => {
+    const p = data.points[i];
+    if (hidden[p.c]) return 0.08;
+    if (selected == null) return 0.75;
+    return i === selected || nnSet.has(i) ? 1 : 0.3;
+  };
+</script>
+
+<section class="chapter" id="taxonomy">
+  <div class="prose">
+    <div class="eyebrow">Part 3</div>
+    <h2>ValueMap: a taxonomy of LLM values</h2>
+    <p>
+      Representations that predict alignment generalization can also organize values. Where past taxonomies
+      clustered value <em>descriptions</em>, we cluster representations that better predict how values interact
+      during training. We introduce <strong>ValueMap</strong> and instantiate it on Olmo-3.1-32B-SFT and the 266
+      values from <em>Values in the Wild</em>, using k-medoids with k = 4 on persona-vector representations.
+    </p>
+    <p>
+      We identify four clusters: <strong>attunement</strong> values, which relate to supporting healthy
+      interpersonal relationships and emotional growth in users; <strong>rigor</strong> values, which support
+      rigorous reasoning, objectivity, and excellence in task execution; <strong>stewardship</strong> values,
+      supporting the long-term welfare of society and the full consideration of third parties; and
+      <strong>integrity</strong> values, supporting professional norms and codes of conduct as well as intellectual
+      honesty. ValueMap recovers the generalization structure of Part 1 better than existing taxonomies
+      (z = 2.75, vs. 1.55 for LitmusValues and 1.03 for Values in the Wild).
+    </p>
+  </div>
+
+  <div class="figure" bind:this={figEl}>
+    <div class="toolbar ui">
+      <div class="legend">
+        {#if data}
+          {#each data.clusters as c, k}
+            <button class="chipbtn" aria-pressed={!hidden[k]} onclick={() => (hidden[k] = !hidden[k])} title={c.desc}>
+              <span class="dot" style="background:{CLUSTER_HEX[k]}"></span>{c.name} <span class="muted num">{c.n}</span>
+            </button>
+          {/each}
+        {/if}
+      </div>
+      <div class="search">
+        <input type="search" placeholder="Find a value…" bind:value={query} aria-label="Find a value" />
+        {#if matches.length}
+          <ul class="results card">
+            {#each matches as m}
+              <li><button onclick={() => pick(m.i)}><span class="dot" style="background:{CLUSTER_HEX[m.p.c]}"></span>{m.p.name}</button></li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+      <button class="btn" onclick={() => resetZoom()}>Reset zoom</button>
+    </div>
+
+    <div class="mapwrap card" bind:clientWidth={width}>
+      <svg bind:this={svg} {width} {height} role="img" aria-label="MDS map of 266 values in four clusters"
+        onmousemove={onmove} onmouseleave={onleave}>
+        {#if data && base.length}
+          <g transform={transform.toString()}>
+            {#each hulls as h, k}
+              {#if !hidden[k]}
+                <path d={h.d} stroke-linejoin="round" fill={CLUSTER_HEX[k]} fill-opacity="0.08" stroke={CLUSTER_HEX[k]} stroke-opacity="0.5" stroke-width={1 / transform.k} />
+              {/if}
+            {/each}
+            {#if selected != null}
+              {#each data.points[selected].nn as [j]}
+                <line x1={pos[selected].x} y1={pos[selected].y} x2={pos[j].x} y2={pos[j].y} stroke="#0b0b0b" stroke-width={1.25 / transform.k} stroke-opacity="0.6" />
+              {/each}
+            {/if}
+            {#each data.points as p, i}
+              <circle
+                cx={pos[i].x} cy={pos[i].y}
+                r={(i === selected ? 8 : i === hoverI ? 7 : p.medoid ? 6 : 4.5) / Math.sqrt(transform.k)}
+                fill={CLUSTER_HEX[p.c]} fill-opacity={opacity(i)}
+                stroke={i === selected ? '#0b0b0b' : '#fcfcfb'} stroke-width={(i === selected ? 2 : 1) / transform.k}
+                role="button" tabindex="-1" aria-label={p.name}
+                onmouseenter={(e) => { hoverI = i; tip = { x: e.clientX, y: e.clientY, i }; }}
+                onmouseleave={() => { hoverI = null; tip = null; }}
+                onclick={() => (selected = selected === i ? null : i)}
+                onkeydown={(e) => e.key === 'Enter' && (selected = i)}
+                style="cursor:pointer"
+              />
+            {/each}
+            {#each data.points as p, i}
+              {#if (p.label || (transform.k > 2.2 && !hidden[p.c])) && !hidden[p.c]}
+                <text x={pos[i].x + 8 / transform.k} y={pos[i].y + 3.5 / transform.k} class="plabel" font-size={(p.label ? 11.5 : 10) / transform.k}
+                  stroke-width={3 / transform.k} opacity={selected == null || i === selected || nnSet.has(i) ? 1 : 0.45}>{p.name}</text>
+              {/if}
+            {/each}
+            {#each hulls as h, k}
+              {#if !hidden[k]}
+                <text x={h.c[0]} y={h.c[1]} class="clabel" text-anchor="middle" font-size={22 / transform.k} stroke-width={5 / transform.k}>{data.clusters[k].name}</text>
+              {/if}
+            {/each}
+          </g>
+        {/if}
+      </svg>
+
+      {#if data && selected != null}
+        {@const p = data.points[selected]}
+        <div class="vcard card ui">
+          <button class="close" onclick={() => (selected = null)} aria-label="Close">×</button>
+          <span class="chip" style="--c:{CLUSTER_HEX[p.c]}">{data.clusters[p.c].name}</span>
+          <h3>{p.name}</h3>
+          <p class="ink2">{p.desc}</p>
+          <div class="eyebrow">Nearest neighbors</div>
+          <ol class="nn">
+            {#each p.nn as [j, cos]}
+              <li><button onclick={() => (selected = j)}><span class="dot" style="background:{CLUSTER_HEX[data.points[j].c]}"></span>{data.points[j].name}<span class="num muted">cos {cos.toFixed(2)}</span></button></li>
+            {/each}
+          </ol>
+        </div>
+      {/if}
+    </div>
+    <p class="caption ui muted">
+      Each point is a value's persona vector in Olmo-3.1-32B-SFT, projected to 2D with non-metric MDS. Shaded regions are the
+      hull of the 90% of each cluster's points closest to its centroid. Because 2D projection distorts distance,
+      nearest neighbors are computed in the full representation space. Scroll to zoom, drag to pan.
+    </p>
+  </div>
+
+  {#if tip && data}
+    <div class="tooltip" style="left:{tip.x + 14}px; top:{tip.y + 14}px">{data.points[tip.i].name}</div>
+  {/if}
+</section>
+
+<style>
+  .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  .chipbtn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  .chipbtn[aria-pressed='false'] { opacity: 0.45; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .search { position: relative; }
+  .search input { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; width: 220px; background: var(--surface); }
+  .results { position: absolute; top: 36px; left: 0; right: 0; z-index: 20; list-style: none; margin: 0; padding: 4px; }
+  .results button, .nn button { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; text-align: left; padding: 5px 6px; border-radius: 6px; cursor: pointer; font: inherit; color: var(--ink); }
+  .results button:hover, .nn button:hover { background: var(--surface-2); }
+  .mapwrap { position: relative; overflow: hidden; }
+  svg { display: block; touch-action: none; }
+  .plabel { font-family: Inter, sans-serif; fill: #0b0b0b; paint-order: stroke; stroke: #fcfcfb; stroke-linejoin: round; pointer-events: none; }
+  .clabel { font-family: Inter, sans-serif; font-weight: 700; fill: #0b0b0b; paint-order: stroke; stroke: rgba(252,252,251,.85); stroke-linejoin: round; pointer-events: none; letter-spacing: 0.02em; }
+  .vcard { position: absolute; top: 14px; right: 14px; width: 300px; padding: 16px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+  .vcard h3 { margin: 8px 0 6px; font-size: 18px; }
+  .vcard p { margin: 0 0 12px; font-size: 13px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+  .chip::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .close { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
+  .nn { list-style: none; padding: 0; margin: 6px 0 0; }
+  .nn .num { margin-left: auto; font-size: 12px; }
+  .caption { font-size: 12.5px; max-width: 760px; margin-top: 10px; }
+  @media (max-width: 760px) { .vcard { position: static; width: auto; margin: 12px; } }
+</style>
