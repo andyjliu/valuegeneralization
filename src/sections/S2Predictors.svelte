@@ -90,6 +90,7 @@
   const ord = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
   const legendStops = Array.from({ length: 21 }, (_, k) => k * 5);
 
+  const PRED_ORDER = [['sentence_emb', 'Description-Embd'], ['sentemb_behavior', 'Behavior-Embd'], ['persona', 'Persona'], ['grad_proj', 'Gradient'], ['weight_steer', 'Weight']];
   // one-line method summaries, from §4.1 of the paper
   const PRED_DESC = {
     persona: 'Difference in mean activations between pro-value and anti-value responses, taken at the layer that steers the model most strongly (<a href="https://arxiv.org/abs/2507.21509">Chen et al., 2025</a>).',
@@ -105,10 +106,15 @@
     <h2>Benchmarking value representations</h2>
     <p>
       Computing G requires training a model on every value. Can we predict it <em>before</em> training? We compare
-      five candidate value representations: value description embeddings (<strong>Description-Embd</strong>),
-      behavioral sentence embeddings (<strong>Behavior-Embd</strong>), persona vectors (<strong>Persona</strong>),
-      gradient update directions (<strong>Gradient</strong>), and weight steering (<strong>Weight</strong>). For
-      each pair of values we compute the cosine similarity between their representations, and score each method
+      five candidate value representations:
+    </p>
+    <ul class="methods">
+      {#each PRED_ORDER as [id, name]}
+        <li><strong>{name}</strong>: {@html PRED_DESC[id]}</li>
+      {/each}
+    </ul>
+    <p>
+      For each pair of values we compute the cosine similarity between their representations, and score each method
       by the Spearman rank correlation between that similarity and G across all pairs of values.
     </p>
     <p>
@@ -245,6 +251,8 @@
 </section>
 
 <style>
+  .methods { margin: 0 0 1em; padding-left: 1.2em; }
+  .methods li { margin: 0.2em 0; }
   .rail { margin-bottom: 18px; }
   .tgrid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 28px; align-items: end; }
   .tgrid .ctl { margin-bottom: 0; }

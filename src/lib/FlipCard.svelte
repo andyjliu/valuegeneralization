@@ -5,6 +5,18 @@
 
   let scen = $state(null);
   let openPrompt = $state(false);
+  let ptextEl = $state(null);
+  let overflows = $state(false);
+  // only offer "Show full prompt" when the 5-line clamp actually cuts text off
+  $effect(() => {
+    const el = ptextEl;
+    if (!el) return;
+    const check = () => { if (!openPrompt) overflows = el.scrollHeight > el.clientHeight + 1; };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  });
   $effect(() => {
     scen = null;
     openPrompt = false;
@@ -24,9 +36,11 @@
     <div class="block">
       <div class="eyebrow">ConflictScope scenario</div>
       <div class="prompt">
-        <span class="role">User</span><div class="ptext" class:clamped={!openPrompt}>{scen.p.trim()}</div>
+        <span class="role">User</span><div class="ptext" class:clamped={!openPrompt} bind:this={ptextEl}>{scen.p.trim()}</div>
       </div>
-      <button class="link" onclick={() => (openPrompt = !openPrompt)}>{openPrompt ? 'Show less' : 'Show full prompt'}</button>
+      {#if overflows}
+        <button class="link" onclick={() => (openPrompt = !openPrompt)}>{openPrompt ? 'Show less' : 'Show full prompt'}</button>
+      {/if}
       <div class="actions">
         <div class="act" class:aligned={aAligned}>
           <span class="tag">Action A · {name(scen.v1)}</span>

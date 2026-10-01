@@ -94,7 +94,7 @@
     <p>
       Real alignment targets train on many values at once, not just one value. We apply our value representations
       to the study of multi-value targets by using them to compute the <em>coherence</em> (average pairwise
-      representational similarity) of different targets. We found that this coherence metric is significantly
+      similarity between persona vectors) of different targets. We found that this coherence metric is significantly
       correlated with how robust models trained on those alignment targets are to
       <a href="https://openreview.net/forum?id=hXA8wqRdyV">prefills</a>. <strong>Drag values into the
       target</strong> to see how coherent a set of values is, and which pairs pull it together or apart.
@@ -165,23 +165,24 @@
 
         {#if pairs.length}
           <div class="pairs card">
+            <p class="pcap small ink2">Cosine similarity between the persona vectors of each pair of values in your target. Coherence is the average over all pairs.</p>
             <div class="pcol">
-              <div class="eyebrow">Most similar pairs</div>
+              <div class="eyebrow">Most similar pairs (raise coherence)</div>
               {#each pairs.slice(0, 3) as p}
                 <div class="prow" role="listitem" onmouseenter={() => (hoverPair = p)} onmouseleave={() => (hoverPair = null)}>
                   <span class="sw" style="background:{pairColor(p.cos)}"></span>
                   <span>{values[p.a].name} <span class="muted">&amp;</span> {values[p.b].name}</span>
-                  <span class="num">{p.cos.toFixed(2)}</span>
+                  <span class="num">cos {p.cos.toFixed(2)}</span>
                 </div>
               {/each}
             </div>
             <div class="pcol">
-              <div class="eyebrow">Least similar pairs</div>
+              <div class="eyebrow">Least similar pairs (lower coherence)</div>
               {#each pairs.slice(-3).reverse() as p}
                 <div class="prow" role="listitem" onmouseenter={() => (hoverPair = p)} onmouseleave={() => (hoverPair = null)}>
                   <span class="sw" style="background:{pairColor(p.cos)}"></span>
                   <span>{values[p.a].name} <span class="muted">&amp;</span> {values[p.b].name}</span>
-                  <span class="num">{p.cos.toFixed(2)}</span>
+                  <span class="num">cos {p.cos.toFixed(2)}</span>
                 </div>
               {/each}
             </div>
@@ -257,6 +258,7 @@
   .loobar { display: inline-block; height: 6px; border-radius: 2px; }
   .x { border: 0; background: none; font-size: 16px; color: var(--muted); cursor: pointer; padding: 0 4px; }
   .pairs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px; }
+  .pcap { grid-column: 1 / -1; margin: 0 0 -6px; }
   .prow { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; font-size: 12.5px; padding: 4px 0; border-bottom: 1px solid var(--grid); }
   .sw { width: 12px; height: 12px; border-radius: 3px; }
   .readout { padding: 16px; position: sticky; top: calc(var(--header-h) + 20px); }
