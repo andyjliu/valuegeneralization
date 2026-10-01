@@ -115,7 +115,7 @@
       Methods based on model activations when applying values in context significantly outperform those based on
       textual descriptions. The very low correlation (ρ = 0.06) for description embeddings suggests that
       alignment generalization is driven by behavioral patterns that value descriptions do not capture; the best
-      activation-based methods reach ρ = 0.46. Pick a representation below to compare its similarity matrix with
+      activation-based methods reach ρ = 0.46 (averaged over the four model and training-method settings). Pick a representation below to compare its similarity matrix with
       the real one, and <strong>click a cell</strong> to compare all five on that pair.
     </p>
   </div>
