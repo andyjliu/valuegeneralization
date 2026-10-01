@@ -16,7 +16,7 @@
     showRowLabels = true,
     showColLabels = true,
     cellSize = null,             // fixed cell size (px); otherwise fit to width
-    rowGutter = 176,
+    rowGutter = 196,
     hoverExt = null,             // crosshair driven by a linked matrix
   } = $props();
 
@@ -106,9 +106,10 @@
       ctx.restore();
     }
     // axis titles
-    ctx.fillStyle = '#898781';
-    ctx.font = '600 11px Inter, system-ui, sans-serif';
+    ctx.fillStyle = '#52514e';
+    ctx.font = '600 14px Inter, system-ui, sans-serif';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
     if (showColLabels) ctx.fillText('EVALUATED ON →', gutterL, 10);
     if (showRowLabels && showColLabels) {
       ctx.save();

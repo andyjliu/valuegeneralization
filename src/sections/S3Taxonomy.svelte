@@ -170,9 +170,8 @@
   <div class="prose">
     <h2>ValueMap: a taxonomy of LLM values</h2>
     <p>
-      Representations that predict alignment generalization can also organize values. Where past taxonomies
-      clustered value <em>descriptions</em>, we cluster representations that better predict how values interact
-      during training. We introduce <strong>ValueMap</strong> and instantiate it on Olmo-3.1-32B-SFT and the 266
+      Where past taxonomies of LLM values clustered value <em>descriptions</em>, we cluster representations that
+      better predict how values interact during training. We introduce <strong>ValueMap</strong> and instantiate it on Olmo-3.1-32B-SFT and the 266
       values from <a href="https://arxiv.org/abs/2504.15236"><em>Values in the Wild</em></a>, using k-medoids with k = 4 on persona-vector representations.
     </p>
     <p>
@@ -181,8 +180,7 @@
       rigorous reasoning, objectivity, and excellence in task execution; <strong>stewardship</strong> values,
       supporting the long-term welfare of society and the full consideration of third parties; and
       <strong>integrity</strong> values, supporting professional norms and codes of conduct as well as intellectual
-      honesty. ValueMap recovers the generalization structure of the matrices above better than existing taxonomies
-      (z = 2.75, vs. 1.55 for LitmusValues and 1.03 for Values in the Wild).
+      honesty.
     </p>
   </div>
 

@@ -22,23 +22,11 @@
       {#each META.affiliations as aff, n}<span><sup>{n + 1}</sup>{aff}</span>{/each}
     </p>
     <p class="lede">
-      LLM developers post-train their models to exhibit prosocial values and behavioral traits, which are enumerated
-      in an <a href="https://arxiv.org/abs/2404.10636">alignment target</a>. However, while recent post-training developments have yielded models that score highly on
-      alignment evaluations, training models on sets of narrow behaviors still influences their behavior across
-      unseen contexts and environments in unexpected ways. In this paper, we establish the task of <em>alignment
-      generalization prediction</em>, i.e., predicting how fine-tuning a model to follow a given value changes its
-      behavior across a wide range of heldout values. We conduct a large-scale analysis of alignment generalization
-      effects across 66 values found in modern alignment targets, and benchmark representational techniques on the
-      alignment generalization prediction task. We find that representations based on model activations when
-      applying values in context significantly outperform methods based on textual descriptions of the values.
-      Specifically, the best activations-based methods achieve correlations of ρ = 0.46 with our generalization
-      matrix, compared with ρ = 0.06 from description-based baselines. We then show the applicability of
-      representations that predict alignment generalization toward downstream tasks by using them to measure how
-      similar the values in a multi-value alignment target are, which we find is significantly correlated with
-      model robustness. Finally, we show initial evidence towards a shared, model-independent value space, which we
-      use to develop the first taxonomy of LLM values grounded in empirical generalization dynamics. Our work
-      demonstrates the importance of studying value generalization in LLMs and its application toward the more
-      empirical design and training of model behavior.
+      In this paper, we establish the task of <em>alignment generalization prediction</em>: predicting how
+      fine-tuning a model to follow a given value changes its behavior across a wide range of heldout values. We use
+      this to benchmark different methods of representing values. We then show that representations that do well on
+      the generalization prediction task can also be applied to taxonomizing LLM values (ValueMap) and studying
+      multi-value alignment targets.
     </p>
     <div class="cta ui">
       {#if META.paperUrl}<a class="btn primary" href={META.paperUrl}>Read the paper</a>{/if}

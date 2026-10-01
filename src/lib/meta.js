@@ -6,13 +6,13 @@ export const META = {
   codeUrl: null,                  // TODO: e.g. https://github.com/andyjliu/value-generalization
   authors: [
     { name: 'Andy Liu', aff: [1] },
-    { name: 'Mehar Bhatia', aff: [2] },
-    { name: 'Karolina Stańczak', aff: [3] },
+    { name: 'Mehar Bhatia', aff: [2, 3] },
+    { name: 'Karolina Stańczak', aff: [4] },
     { name: 'Mona Diab', aff: [1] },
-    { name: 'Vered Shwartz', aff: [4] },
+    { name: 'Vered Shwartz', aff: [5] },
     { name: 'Daniel Fried', aff: [1] },
   ],
-  affiliations: ['Carnegie Mellon University', 'Mila', 'ETH Zurich', 'University of British Columbia'],
+  affiliations: ['Carnegie Mellon University', 'Mila - Quebec AI Institute', 'McGill University', 'ETH Zurich', 'University of British Columbia'],
   bibtex: `@article{liu2026predicting,
   title   = {Predicting Alignment Generalization with Value Representations},
   author  = {Liu, Andy and Bhatia, Mehar and Sta{\\'n}czak, Karolina and Diab, Mona and Shwartz, Vered and Fried, Daniel},
@@ -22,8 +22,8 @@ export const META = {
 };
 
 export const SECTIONS = [
-  { id: 'generalization', label: 'Generalization' },
-  { id: 'predictors', label: 'Predictors' },
-  { id: 'taxonomy', label: 'Taxonomy' },
-  { id: 'multivalue', label: 'Multi-value' },
+  { id: 'generalization', label: 'Alignment generalization matrices' },
+  { id: 'predictors', label: 'Benchmarking predictors' },
+  { id: 'taxonomy', label: 'ValueMap Taxonomy' },
+  { id: 'multivalue', label: 'Multi-Value Coherence' },
 ];

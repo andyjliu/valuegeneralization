@@ -1,20 +1,19 @@
 <script>
-  import { interpolateLab } from 'd3-interpolate';
-  import { load } from '../lib/data.js';
+  import { load, divColor } from '../lib/data.js';
 
   const KMAX = 15;
   let values = $state([]);
   let mv = $state(null);
   let target = $state([]);
-  let emb = $state('persona');
+  const emb = 'persona';
   let query = $state('');
   let overDrop = $state(false);
   let shake = $state(false);
   let hoverPair = $state(null);
   let dragging = $state(null);   // {i, from: 'palette'|'target'}
 
-  load('values.json').then((v) => (values = v));
-  load('multivalue.json').then((d) => {
+  Promise.all([load('values.json'), load('multivalue.json')]).then(([v, d]) => {
+    values = v;
     mv = d;
     const best = [...d.presets].sort((a, b) => b.coh - a.coh)[0];
     target = [...best.values];
@@ -46,16 +45,8 @@
   let loo = $derived(target.length >= 3 && coh != null ? target.map((v) => coherenceOf(target.filter((t) => t !== v)) - coh) : target.map(() => null));
   let oddOne = $derived(loo.length && loo[0] != null ? target[loo.indexOf(Math.max(...loo))] : null);
 
-  // cosine range for the pair heatmap colour scale (1st-99th pct of all off-diagonal pairs)
-  let range = $derived.by(() => {
-    if (!M) return [0, 1];
-    const xs = [];
-    for (let a = 0; a < 66; a++) for (let b = a + 1; b < 66; b++) xs.push(M[a][b]);
-    xs.sort((x, y) => x - y);
-    return [xs[Math.floor(xs.length * 0.01)], xs[Math.floor(xs.length * 0.99)]];
-  });
-  const seq = interpolateLab('#eef3fb', '#104281');
-  const pairColor = (c) => seq(Math.max(0, Math.min(1, (c - range[0]) / (range[1] - range[0]))));
+  // same diverging scale as the generalization heatmap, on cosine in [-1, 1]
+  const pairColor = (c) => divColor(c);
 
   function add(i) {
     if (target.includes(i)) return;
@@ -101,17 +92,12 @@
   <div class="prose">
     <h2>Build your own alignment target</h2>
     <p>
-      Real <a href="https://arxiv.org/abs/2404.10636">alignment targets</a> list many values at once. We hypothesize that models trained on more coherent sets of
-      traits adhere to their alignment target more robustly. For a multi-value alignment target T = {'{'}v₁, …, vₙ{'}'}
-      and a value embedding E, we define the <em>coherence</em> of T as the average pairwise cosine similarity of the
-      embeddings of its values.
-    </p>
-    <p>
-      We trained Qwen-3-8B on 64 six-value targets and measured prefill robustness: whether the model keeps
-      following its target after anti-target text is injected into its context. Persona-derived coherence is
-      significantly correlated with robustness (ρ = 0.43, p = 5×10⁻⁴), while description-derived coherence is not
-      (ρ = 0.12, p = 0.37). <strong>Drag values into the target</strong> to see how coherent your set is, and which
-      pairs pull it together or apart.
+      Real alignment targets train on many values at once, not just one value. We apply our value representations
+      to the study of multi-value targets by using them to compute the <em>coherence</em> (average pairwise
+      representational similarity) of different targets. We found that this coherence metric is significantly
+      correlated with how robust models trained on those alignment targets are to
+      <a href="https://openreview.net/forum?id=hXA8wqRdyV">prefills</a>. <strong>Drag values into the
+      target</strong> to see how coherent a set of values is, and which pairs pull it together or apart.
     </p>
   </div>
 
@@ -141,9 +127,9 @@
 
       <div class="center">
         <div class="toolbar">
-          <button class="btn" onclick={() => randomK(6)}>Random 6</button>
-          <button class="btn" onclick={() => preset('high')} disabled={!mv}>Most coherent paper target</button>
-          <button class="btn" onclick={() => preset('low')} disabled={!mv}>Least coherent paper target</button>
+          <button class="btn" onclick={() => randomK(6)} disabled={!values.length}>Random 6</button>
+          <button class="btn" onclick={() => preset('high')} disabled={!mv || !values.length}>Most coherent paper target</button>
+          <button class="btn" onclick={() => preset('low')} disabled={!mv || !values.length}>Least coherent paper target</button>
           <button class="btn" onclick={() => (target = [])}>Clear</button>
         </div>
         <div class="drop card" class:over={overDrop} class:shake
@@ -204,13 +190,6 @@
       </div>
 
       <aside class="readout card">
-        <div class="ctl">
-          <span class="ctl-label">Embedding</span>
-          <div class="seg" role="group" aria-label="Embedding">
-            <button aria-pressed={emb === 'persona'} onclick={() => (emb = 'persona')}>Persona</button>
-            <button aria-pressed={emb === 'description'} onclick={() => (emb = 'description')}>Description-Embd</button>
-          </div>
-        </div>
         {#if coh == null}
           <div class="big muted">—</div>
           <p class="muted">Add at least two values.</p>

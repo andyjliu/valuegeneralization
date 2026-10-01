@@ -89,6 +89,15 @@
   });
   const ord = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
   const legendStops = Array.from({ length: 21 }, (_, k) => k * 5);
+
+  // one-line method summaries, from §4.1 of the paper
+  const PRED_DESC = {
+    persona: 'Difference in mean activations between pro-value and anti-value responses, taken at the layer that steers the model most strongly (<a href="https://arxiv.org/abs/2507.21509">Chen et al., 2025</a>).',
+    grad_proj: 'Gradient of the DPO loss on each value\'s preference pairs, averaged into the direction the model would update when fine-tuned on that value (<a href="https://www.lesswrong.com/posts/b8u6XrphyHAXA4hBi/where-do-llm-values-come-from">Sun et al., 2026</a>).',
+    sentemb_behavior: 'Difference between sentence embeddings (<a href="https://huggingface.co/sentence-transformers/all-mpnet-base-v2">all-mpnet-base-v2</a>) of pro-value and anti-value responses, averaged across elicitation prompts.',
+    weight_steer: 'Difference in weights between two fine-tunes, one toward the pro-value and one toward the anti-value responses (<a href="https://proceedings.iclr.cc/paper_files/paper/2026/file/df59090e951681e0f98d40f131c4b628-Paper-Conference.pdf">Fierro &amp; Roger, 2026</a>).',
+    sentence_emb: 'Sentence embedding (<a href="https://huggingface.co/sentence-transformers/all-mpnet-base-v2">all-mpnet-base-v2</a>) of each value\'s text description, as in past work (<a href="https://arxiv.org/abs/2504.15236">Huang et al., 2025</a>).',
+  };
 </script>
 
 <section class="chapter" id="predictors">
@@ -112,27 +121,52 @@
   </div>
 
   <div class="figure">
-    <div class="rail ui toolbar-row">
-      <Controls bind:model bind:method>
-        {#if board}
-          <div class="ctl">
-            <span class="ctl-label">Representation</span>
-            <div class="predlist" role="group" aria-label="Representation">
-              {#each predIds as p}
-                <button class="predbtn" aria-pressed={pred === p} onclick={() => (pred = p)}>
-                  <span class="sw" style="background:{PRED_HEX[p]}"></span>{label(p)}
-                  <span class="num share">ρ {board.rho[arm][p].toFixed(2)}</span>
-                </button>
-              {/each}
-            </div>
+    {#if board}
+      <div class="board card">
+        <div class="board-head ui">
+          <span class="ctl-label" style="margin:0">Spearman ρ with G · {MODEL_LABEL[model]} {METHOD_LABEL[method]}</span>
+          <span class="legend-inline"><span class="tick"></span> mean over 4 settings <span class="ceil"></span> ceiling</span>
+        </div>
+        <svg viewBox="0 0 {BW} {bars.length * BH + 26}" width="100%" role="img" aria-label="Predictor correlations">
+          {#each [0, 0.2, 0.4, 0.6, 0.8, 1] as t}
+            <line x1={xs(t)} x2={xs(t)} y1="0" y2={bars.length * BH} stroke="#e1e0d9" />
+            <text x={xs(t)} y={bars.length * BH + 16} text-anchor="middle" class="axis num">{t.toFixed(1)}</text>
+          {/each}
+          {#each bars as b, r}
+            <g transform="translate(0,{r * BH})" opacity={b.id === pred ? 1 : 0.55}>
+              <text x={LX - 10} y={BH / 2 + 4} text-anchor="end" class="blabel" font-weight={b.id === pred ? 600 : 400}>{label(b.id)}</text>
+              <rect x={xs(0)} y={BH / 2 - 7} width={Math.max(0, xs(b.rho) - xs(0))} height="14" rx="3" fill={PRED_HEX[b.id]} />
+              <line x1={xs(b.ci[0])} x2={xs(b.ci[1])} y1={BH / 2} y2={BH / 2} stroke="#0b0b0b" stroke-width="1.25" />
+              <line x1={xs(b.agg)} x2={xs(b.agg)} y1={BH / 2 - 10} y2={BH / 2 + 10} stroke="#0b0b0b" stroke-width="2" />
+              <text x={Math.max(xs(b.rho), xs(b.ci[1])) + 8} y={BH / 2 + 4} class="bval num">{b.rho.toFixed(2)}</text>
+            </g>
+          {/each}
+          <line x1={xs(board.ceiling[arm])} x2={xs(board.ceiling[arm])} y1="-2" y2={bars.length * BH} stroke="#898781" stroke-dasharray="4 3" />
+          <text x={xs(board.ceiling[arm]) - 4} y="10" text-anchor="end" class="axis">ceiling {board.ceiling[arm].toFixed(2)}</text>
+        </svg>
+      </div>
+    {/if}
+    <div class="rail ui tgrid">
+      <div class="toolbar-row"><Controls bind:model bind:method /></div>
+      {#if board}
+        <div class="ctl">
+          <span class="ctl-label">Representation</span>
+          <div class="predlist" role="group" aria-label="Representation">
+            {#each predIds as p}
+              <button class="predbtn" aria-pressed={pred === p} onclick={() => (pred = p)}>
+                <span class="sw" style="background:{PRED_HEX[p]}"></span>{label(p)}
+                <span class="num share">ρ {board.rho[arm][p].toFixed(2)}</span>
+              </button>
+            {/each}
           </div>
-        {/if}
-      </Controls>
+        </div>
+      {:else}<div></div>{/if}
       <div class="ctl ui">
         <span class="ctl-label">Rank among all pairs</span>
         <div class="legbar" style="background: linear-gradient(90deg, {legendStops.map((s) => rankColor(s)).join(',')})"></div>
         <div class="legticks num"><span>lowest</span><span>highest</span></div>
       </div>
+      {#if board}<p class="pdesc ink2">{@html PRED_DESC[pred]}</p>{/if}
     </div>
 
     {#if P && values.length && board}
@@ -162,7 +196,7 @@
             <div class="dgrid">
               <div>
                 <p class="ink2">The real effect ranks in the <strong>{ord(cell.g)} percentile</strong> of all pairs (black line). Dots show where each representation ranks this pair.</p>
-                <svg viewBox="0 0 360 {cell.ranked.length * 26 + 30}" width="100%" role="img" aria-label="Percentile comparison">
+                <svg viewBox="0 0 360 {cell.ranked.length * 26 + 30}" width="100%" style="max-width:400px" role="img" aria-label="Percentile comparison">
                   {#each [0, 25, 50, 75, 100] as t}
                     <text x={130 + t * 2.1} y={cell.ranked.length * 26 + 22} text-anchor="middle" class="axis num">{t}</text>
                   {/each}
@@ -199,31 +233,6 @@
         {/if}
       </aside>
 
-      {#if board}
-        <div class="board card">
-          <div class="board-head ui">
-            <span class="ctl-label" style="margin:0">Spearman ρ with G · {MODEL_LABEL[model]} {METHOD_LABEL[method]}</span>
-            <span class="legend-inline"><span class="tick"></span> mean over 4 settings <span class="ceil"></span> ceiling</span>
-          </div>
-          <svg viewBox="0 0 {BW} {bars.length * BH + 26}" width="100%" role="img" aria-label="Predictor correlations">
-            {#each [0, 0.2, 0.4, 0.6, 0.8, 1] as t}
-              <line x1={xs(t)} x2={xs(t)} y1="0" y2={bars.length * BH} stroke="#e1e0d9" />
-              <text x={xs(t)} y={bars.length * BH + 16} text-anchor="middle" class="axis num">{t.toFixed(1)}</text>
-            {/each}
-            {#each bars as b, r}
-              <g transform="translate(0,{r * BH})" opacity={b.id === pred ? 1 : 0.55}>
-                <text x={LX - 10} y={BH / 2 + 4} text-anchor="end" class="blabel" font-weight={b.id === pred ? 600 : 400}>{label(b.id)}</text>
-                <rect x={xs(0)} y={BH / 2 - 7} width={Math.max(0, xs(b.rho) - xs(0))} height="14" rx="3" fill={PRED_HEX[b.id]} />
-                <line x1={xs(b.ci[0])} x2={xs(b.ci[1])} y1={BH / 2} y2={BH / 2} stroke="#0b0b0b" stroke-width="1.25" />
-                <line x1={xs(b.agg)} x2={xs(b.agg)} y1={BH / 2 - 10} y2={BH / 2 + 10} stroke="#0b0b0b" stroke-width="2" />
-                <text x={Math.max(xs(b.rho), xs(b.ci[1])) + 8} y={BH / 2 + 4} class="bval num">{b.rho.toFixed(2)}</text>
-              </g>
-            {/each}
-            <line x1={xs(board.ceiling[arm])} x2={xs(board.ceiling[arm])} y1="-2" y2={bars.length * BH} stroke="#898781" stroke-dasharray="4 3" />
-            <text x={xs(board.ceiling[arm]) - 4} y="10" text-anchor="end" class="axis">ceiling {board.ceiling[arm].toFixed(2)}</text>
-          </svg>
-        </div>
-      {/if}
     </div>
   </div>
 
@@ -237,13 +246,16 @@
 
 <style>
   .rail { margin-bottom: 18px; }
+  .tgrid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 28px; align-items: end; }
+  .tgrid .ctl { margin-bottom: 0; }
   .legbar { width: 180px; height: 10px; border-radius: 3px; }
   .legticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-2); width: 180px; }
   .pair { display: flex; gap: 28px; align-items: flex-start; overflow-x: auto; }
   .mcol { flex: none; }
   .mtitle { font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-  .below { display: grid; grid-template-columns: minmax(0, 1fr) 560px; gap: 24px; align-items: start; margin-top: 24px; }
-  .board { padding: 14px 16px 8px; }
+  .below { margin-top: 24px; }
+  .board { padding: 14px 16px 8px; max-width: 600px; margin-bottom: 24px; }
+  .pdesc { max-width: 620px; font-size: 13px; margin: 0; padding-bottom: 2px; align-self: center; }
   .board-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
   .legend-inline { font-size: 11px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 6px; }
   .legend-inline .tick { display: inline-block; width: 2px; height: 12px; background: var(--ink); }
@@ -258,8 +270,7 @@
   .share { color: var(--ink-2); font-size: 12px; font-weight: 400; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
   .detail { padding: 18px; }
-  .dgrid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px 24px; align-items: start; }
-  .dgrid .sc { grid-column: 1 / -1; }
+  .dgrid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 12px 28px; align-items: start; }
   .headline { font-size: 16px; font-weight: 500; margin: 0 0 8px; }
   .headline .v { font-weight: 700; }
   .detail p { font-size: 13px; margin: 0 0 8px; }
@@ -269,7 +280,7 @@
   .rank tr.cur td { font-weight: 600; }
   .sc canvas { display: block; margin-top: 6px; }
   @media (max-width: 1180px) {
-    .below { grid-template-columns: minmax(0, 1fr); }
+    .tgrid { grid-template-columns: minmax(0, 1fr); }
     .dgrid { grid-template-columns: minmax(0, 1fr); }
   }
 </style>
