@@ -180,7 +180,8 @@
       rigorous reasoning, objectivity, and excellence in task execution; <strong>stewardship</strong> values,
       supporting the long-term welfare of society and the full consideration of third parties; and
       <strong>integrity</strong> values, supporting professional norms and codes of conduct as well as intellectual
-      honesty.
+      honesty. We find that this clustering is more predictive of downstream generalization effects than previous
+      taxonomies.
     </p>
   </div>
 

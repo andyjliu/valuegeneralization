@@ -29,7 +29,7 @@
     </nav>
     <div class="links">
       {#if META.paperUrl}<a href={META.paperUrl}>Paper</a>{/if}
-      {#if META.codeUrl}<a href={META.codeUrl}>Code</a>{/if}
+      {#if META.codeUrl && META.codeUrl !== '#'}<a href={META.codeUrl}>Code</a>{/if}
     </div>
   </div>
 </header>

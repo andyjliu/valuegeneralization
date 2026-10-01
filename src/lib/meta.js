@@ -2,8 +2,9 @@
 export const META = {
   title: 'Predicting Alignment Generalization with Value Representations',
   short: 'Value Generalization',
-  paperUrl: null,                 // TODO: arXiv abs URL (paper links hidden until set)
-  codeUrl: null,                  // TODO: e.g. https://github.com/andyjliu/value-generalization
+  paperUrl: null,                 // header "Paper" link, hidden until set
+  arxivUrl: '#',                  // TODO: arXiv abs URL
+  codeUrl: '#',                   // TODO: GitHub repo URL
   authors: [
     { name: 'Andy Liu', aff: [1] },
     { name: 'Mehar Bhatia', aff: [2, 3] },
