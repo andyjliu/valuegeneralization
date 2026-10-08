@@ -1,0 +1,10 @@
+node_modules/
+dist/
+raw/
+*.log
+.DS_Store
+
+# original paper PDF (a copy ships at public/assets/paper.pdf)
+/Value_Generalization__*.pdf
+public/assets/paper.pdf
+__pycache__/
