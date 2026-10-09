@@ -1,9 +1,9 @@
-// Site-level metadata. Fill in the arXiv / code URLs once public.
+// Site-level metadata.
 export const META = {
   title: 'Predicting Alignment Generalization with Value Representations',
   short: 'Value Generalization',
-  paperUrl: null,                 // header "Paper" link, hidden until set
-  arxivUrl: '#',                  // TODO: arXiv abs URL
+  paperUrl: 'https://arxiv.org/abs/2610.12410',   // header "Paper" link
+  arxivUrl: 'https://arxiv.org/abs/2610.12410',
   codeUrl: 'https://github.com/andyjliu/value-generalization',
   authors: [
     { name: 'Andy Liu', aff: [1] },
@@ -14,11 +14,14 @@ export const META = {
     { name: 'Daniel Fried', aff: [1] },
   ],
   affiliations: ['Carnegie Mellon University', 'Mila - Quebec AI Institute', 'McGill University', 'ETH Zurich', 'ETH AI Center', 'University of British Columbia', 'Vector Institute'],
-  bibtex: `@article{liu2026predicting,
-  title   = {Predicting Alignment Generalization with Value Representations},
-  author  = {Liu, Andy and Bhatia, Mehar and Sta{\\'n}czak, Karolina and Diab, Mona and Shwartz, Vered and Fried, Daniel},
-  journal = {arXiv preprint},
-  year    = {2026}
+  bibtex: `@misc{liu2026predictingalignmentgeneralizationvalue,
+      title={Predicting Alignment Generalization with Value Representations},
+      author={Andy Liu and Mehar Bhatia and Karolina Stanczak and Mona Diab and Vered Shwartz and Daniel Fried},
+      year={2026},
+      eprint={2610.12410},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2610.12410},
 }`,
 };
 
